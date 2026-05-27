@@ -1,4 +1,4 @@
-"""Optimise (β, τ, TC) of the canonical-TrueSkill + σ-relaxation model on
+"""Optimise (β, τ, TC, A_mu, TC_mu) of the canonical-TrueSkill + σ-relaxation/μ-decay model on
 a chosen subset of the TAF game_stats data."""
 from __future__ import annotations
 
@@ -17,30 +17,33 @@ from data_loader import (
 )
 
 # env layout (must match TafskillParams.h)
-ENV_MU0, ENV_SIGMA0, ENV_BETA, ENV_TAU, ENV_TC = range(5)
+ENV_MU0, ENV_SIGMA0, ENV_BETA, ENV_TAU, ENV_TC, ENV_MU_DECAY, ENV_MU_TC = range(7)
 
 # Fixed model parameters — we don't fit μ₀ or σ₀ here; they set the rating scale
 # and the prior σ that σ-relaxation pulls toward.
 MU0     = 1500.0
 SIGMA0  = 500.0
 
-# Bounds (in order: β, τ, TC)
-PARAM_NAMES = ["beta", "tau", "TC_days"]
-LB = np.array([ 50.0,  1.0,    1.0], dtype=np.float64)
-UB = np.array([500.0, 50.0, 100000.0], dtype=np.float64)
-X0 = np.array([200.0, 10.0,  500.0], dtype=np.float64)
+# Bounds (in order: β, τ, TC, maximum μ decay, μ-decay TC)
+PARAM_NAMES = ["beta", "tau", "TC_days", "mu_decay_max", "mu_decay_TC_days"]
+LB = np.array([ 50.0,  1.0,      1.0,   0.0,      1.0], dtype=np.float64)
+UB = np.array([500.0, 50.0, 100000.0, 500.0, 100000.0], dtype=np.float64)
+X0 = np.array([200.0, 10.0,    500.0,  50.0,    500.0], dtype=np.float64)
 
 # Minimum games per player on each side before a game's outcome counts toward NLML.
 N_GAMES_MIN_DEFAULT = 10
 
 
-def make_env(beta: float, tau: float, tc: float) -> np.ndarray:
+def make_env(beta: float, tau: float, tc: float,
+             mu_decay: float = 0.0, mu_tc: float = 1e9) -> np.ndarray:
     env = np.zeros((1, pytafskill.env_size()), dtype=np.float64)
     env[0, ENV_MU0]    = MU0
     env[0, ENV_SIGMA0] = SIGMA0
     env[0, ENV_BETA]   = beta
     env[0, ENV_TAU]    = tau
     env[0, ENV_TC]     = tc
+    env[0, ENV_MU_DECAY] = mu_decay
+    env[0, ENV_MU_TC]    = mu_tc
     return env
 
 

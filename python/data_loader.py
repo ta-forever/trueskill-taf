@@ -15,7 +15,7 @@ from typing import Iterable
 
 import numpy as np
 
-DEFAULT_CSV = Path(r"D:/wrk/trueskillcpp/data/TAF game_stats 20260313/game_stats.csv-1773390717847.csv")
+DEFAULT_CSV = Path(__file__).parent.parent / "data" / "game_stats.csv-1773390717847.csv"
 
 
 def _parse_time_days(s: str) -> float:

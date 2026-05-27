@@ -11,6 +11,7 @@ namespace tafskill {
 
 // Canonical team TrueSkill (scalar μ/σ per player) with:
 //   - σ-relaxation toward env[SIGMA0]² with time constant env[TC]
+//   - μ-decay after inactivity, saturating at env[MU_DECAY]
 //   - per-player β performance noise
 //   - draw probability = 0 (drawMargin = 0)
 // Both teams must have the same teamSize.

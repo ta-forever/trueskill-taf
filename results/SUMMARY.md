@@ -1,43 +1,55 @@
 # tafskill optimisation results
 
-Canonical team-TrueSkill (scalar μ,σ per player, pDraw=0) with the σ-relaxation
-extension `Δσ² = (σ_prior² − σ²)·(1 − exp(−Δt/TC)) + τ²`. Draws filtered at load.
+Canonical team-TrueSkill (scalar mu,sigma per player, pDraw=0) with sigma-relaxation
+and mu-decay after inactivity. Draws are filtered at load time.
 
 ## ProTA 1v1 (11610 games, 554 players, 1228 days)
 
-| Model                                 | β     | τ    | TC (d)    | NLML       | Δ vs canonical |
-|---------------------------------------|-------|------|-----------|------------|----------------|
-| Canonical TS (default β=200, τ=10)    |   200 | 10.0 | ∞ (no relax) |   4567.09 |        0       |
-| Optimal β,τ — no σ-relax              | 265.9 | 10.80 | ∞ (no relax) |   4556.36 |  -10.73      |
-| Optimal β,τ,TC — with σ-relax         | 265.9 | 10.80 |    10000 |   4554.15 |  -12.93      |
+| Model | beta | tau | sigma TC (d) | mu decay max | mu decay TC (d) | NLML | Delta vs canonical |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Canonical TS | 200 | 10.0 | inf | 0.0 | inf | 4567.09 | 0.00 |
+| Optimal beta,tau only | 265.9 | 10.82 | inf | 0.0 | inf | 4556.33 | -10.76 |
+| With sigma-relaxation only | 265.9 | 10.82 |      7245 | 0.0 | inf | 4554.05 | -13.04 |
+| With sigma-relaxation and mu-decay | 265.9 | 10.82 |      7245 | 0.0 |       524 | 4554.05 | -13.04 |
 
-NLML counted over 9430 games (each player needs ≥10 prior games).
+NLML counted over 9430 games (each player needs >= 10 prior games).
 
-## Escalation N-vs-N (N ≥ 3) (6141 games, 492 players, 1211 days)
+## Escalation N-vs-N (N >= 3) (6141 games, 492 players, 1211 days)
 
-| Model                                 | β     | τ    | TC (d)    | NLML       | Δ vs canonical |
-|---------------------------------------|-------|------|-----------|------------|----------------|
-| Canonical TS (default β=200, τ=10)    |   200 | 10.0 | ∞ (no relax) |   2928.01 |        0       |
-| Optimal β,τ — no σ-relax              | 330.1 | 5.49 | ∞ (no relax) |   2901.41 |  -26.59      |
-| Optimal β,τ,TC — with σ-relax         | 330.1 | 5.49 |    30000 |   2901.57 |  -26.44      |
+| Model | beta | tau | sigma TC (d) | mu decay max | mu decay TC (d) | NLML | Delta vs canonical |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Canonical TS | 200 | 10.0 | inf | 0.0 | inf | 2928.01 | 0.00 |
+| Optimal beta,tau only | 326.8 | 5.09 | inf | 0.0 | inf | 2901.51 | -26.49 |
+| With sigma-relaxation only | 326.8 | 5.09 |     42066 | 0.0 | inf | 2901.53 | -26.48 |
+| With sigma-relaxation and mu-decay | 326.8 | 5.09 |     42066 | 0.0 |       607 | 2901.53 | -26.48 |
 
-NLML counted over 4338 games (each player needs ≥10 prior games).
+NLML counted over 4338 games (each player needs >= 10 prior games).
+
+## Mu-Decay Profile Search
+
+For each fixed `(A_mu, TC_mu)` grid point, beta, tau, and sigma TC were re-optimised.
+
+### ProTA 1v1
+
+- Best overall: A_mu=0.0, TC_mu=524 d, delta NLML=-0.005.
+- Best positive A_mu: A_mu=1.0, TC_mu=100000 d, delta NLML=-0.004.
+- Best positive A_mu with TC_mu < 100000 d: A_mu=1.0, TC_mu=30000 d, delta NLML=-0.003.
+
+### Escalation N-vs-N (N >= 3)
+
+- Best overall: A_mu=0.0, TC_mu=607 d, delta NLML=-0.079.
+- Best positive A_mu: A_mu=1.0, TC_mu=100000 d, delta NLML=-0.078.
+- Best positive A_mu with TC_mu < 100000 d: A_mu=1.0, TC_mu=30000 d, delta NLML=-0.078.
 
 ## Takeaways
 
-1. **The big lever in TAF is β** (per-player performance noise), not σ-relaxation.
-   ProTA wants β≈266; Escalation wants β≈330 — both noticeably higher than the
-   FAF default of 200.
-2. **σ-relaxation provides ≤2 nats of NLML improvement over thousands of games**,
-   even at its best TC. On Escalation the contribution is statistically zero or
-   even slightly negative.
-3. The optimal TC drifts toward 10⁴–10⁵ days (much longer than the 1200-day data
-   span), meaning σ relaxes negligibly fast within the observable window. In other
-   words: in this TAF dataset, players who return after long absences do NOT
-   reliably under-perform their stored σ — there is little statistical signal for
-   the model to recover.
-4. Picking any TC ∈ [3000, 30000] days gives essentially the same result. A round
-   ‘TC = 365 days’ used as a knob in the rating service would degrade NLML by
-   ~50 nats vs the optimum on ProTA — small absolutely, but if the goal is just
-   to keep σ from getting too small for inactive players, a moderately gentle
-   value is fine.
+1. The optimiser drives `mu_decay_max` to exactly 0 for both ProTA 1v1 and
+   Escalation 3v3+, so the fitted model finds no useful inactive-player
+   mean decay signal in these slices.
+2. Because `mu_decay_max = 0`, the fitted `mu_decay_TC_days` value is not
+   identifiable; it is just where the optimiser happened to stop on a flat
+   dimension.
+3. The broader profile search only finds positive `A_mu` when `TC_mu` is so
+   large that the actual decay over this 1200-day window is negligible.
+4. The remaining gains still come from beta/tau, with sigma-relaxation tiny
+   for ProTA and effectively neutral for Escalation.

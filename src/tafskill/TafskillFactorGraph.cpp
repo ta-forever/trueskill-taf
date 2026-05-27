@@ -113,8 +113,18 @@ void TafskillFactorGraph::PreGameSetup(int iTeam, int iPlayer, const double *r, 
     double sigmasq_new = sigmasq_observed + tausq + (sigmasq_prior - sigmasq_observed) * k;
     if (sigmasq_new < 1e-9) sigmasq_new = 1e-9;
 
+    // μ-decay after inactivity:
+    //   μ' = μ - A · (1 - exp(-Δt / TC_mu))
+    // where A is the maximum saturated rating loss.
+    double mu_new = r[RATING::MU];
+    if (delta_t > 0.0 && m_env[ENV::MU_DECAY] > 0.0 && m_env[ENV::MU_TC] > 0.0)
+    {
+        const double k_mu = 1.0 - std::exp(-delta_t / m_env[ENV::MU_TC]);
+        mu_new -= m_env[ENV::MU_DECAY] * k_mu;
+    }
+
     msgs.playerSkill[DOWN][iPlayer].Set(factorgraph::GaussianMessage::MU_SIGMASQ,
-                                        r[RATING::MU], sigmasq_new);
+                                        mu_new, sigmasq_new);
 }
 
 // Macro to fire the same Update on both teams' copies of a named factor.

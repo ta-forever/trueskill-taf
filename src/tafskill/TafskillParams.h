@@ -9,8 +9,10 @@ namespace ENV {
     constexpr int BETA     = 2;   // per-player performance noise
     constexpr int TAU      = 3;   // per-game uncertainty bump
     constexpr int TC       = 4;   // sigma-relaxation time constant (units of Δt)
+    constexpr int MU_DECAY = 5;   // maximum mean decay after inactivity
+    constexpr int MU_TC    = 6;   // mean-decay time constant (units of Δt)
 
-    constexpr int _NR_PARAMS_ENV = 5;
+    constexpr int _NR_PARAMS_ENV = 7;
 }
 
 // ratings[pid] indices
